@@ -7,7 +7,7 @@
       </h2>
 
       <!-- Business Categories Grid -->
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-8">
         <div
           v-for="business in businesses"
           :key="business.name"

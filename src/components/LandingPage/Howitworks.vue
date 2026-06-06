@@ -115,6 +115,49 @@
       </div>
     </div>
   </section>
+
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 max-w-7xl mx-auto">
+    <div class="p-6 md:p-8">
+      <!-- Calendar Date -->
+      <div class="text-center mb-5">
+        <i class="fa-solid fa-calendar text-5xl"></i>
+      </div>
+
+      <!-- Headline -->
+      <h3 class="text-gray-900 text-xl font-bold text-center mb-2">
+        Ready to create your first Facebook post?
+      </h3>
+      
+      <p class="text-gray-600 text-center text-sm mb-5">
+        Get your first post live in under 10 minutes.
+      </p>
+
+      <!-- Feature Checkmark -->
+      <div class="flex items-center justify-center gap-2 mb-6">
+        <i class="fas fa-check-circle text-green-500 text-sm"></i>
+        <span class="text-gray-600 text-sm">No credit card required</span>
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button 
+          @click="handleStartFree"
+          class="flex-1 bg-indigo-600 text-white font-semibold py-2.5 px-4 rounded-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2"
+        >
+          <span>Start Free</span>
+          <i class="fas fa-arrow-right text-sm"></i>
+        </button>
+        
+        <button 
+          @click="handleWatchDemo"
+          class="flex-1 border border-gray-300 text-gray-700 font-semibold py-2.5 px-4 rounded-lg hover:bg-gray-50 transition flex items-center justify-center gap-2"
+        >
+          <i class="fas fa-play-circle text-sm"></i>
+          <span>Watch Demo</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>

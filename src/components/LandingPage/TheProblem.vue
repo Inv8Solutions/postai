@@ -123,7 +123,7 @@
       </div>
       
       <!-- Real Cost of not posting card -->
-    <div class="bg-yellow-50 rounded-2xl p-6 md:p-8 shadow-lg border border-indigo-100 max-w-4xl mx-auto mt-8">
+    <div class="bg-yellow-50 rounded-xl p-6 md:p-8 shadow-lg border border-indigo-100 max-w-7xl mx-auto mt-8">
     <!-- Section Title -->
     <h3 class=" text-sm font-semibold uppercase tracking-wide mb-2 text-center">
       THE REAL COST OF NOT POSTING
