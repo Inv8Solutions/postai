@@ -1,11 +1,11 @@
 <template>
-  <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+  <nav class="bg-white sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
         <!-- Logo/Brand -->
         <div class="flex-shrink-0">
-          <a href="/" class="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:opacity-80 transition">
-            PostAI
+          <a href="/" class="text-2xl font-bold hover:opacity-80 transition">
+            <span class="text-gray-900">Post</span><span class="text-blue-600">AI</span>
           </a>
         </div>
 
@@ -14,8 +14,9 @@
           <a
             v-for="item in navigation"
             :key="item.name"
-            :href="item.href"
-            class="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium transition duration-150 ease-in-out hover:bg-gray-50 rounded-md"
+            href="#"
+            @click.prevent="scrollTo(item.sectionId)"
+            class="text-gray-700 hover:text-gray-900 text-sm font-medium transition duration-150 ease-in-out cursor-pointer"
           >
             {{ item.name }}
           </a>
@@ -25,7 +26,7 @@
         <div class="hidden md:block">
           <button
             @click="handleGetStarted"
-            class="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150 ease-in-out shadow-sm"
+            class="px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 focus:outline-none transition duration-150 ease-in-out"
           >
             Get Started Free
           </button>
@@ -78,16 +79,16 @@
           <a
             v-for="item in navigation"
             :key="item.name"
-            :href="item.href"
-            @click="closeMenu"
-            class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition duration-150"
+            href="#"
+            @click.prevent="scrollTo(item.sectionId); closeMenu()"
+            class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition duration-150 cursor-pointer"
           >
             {{ item.name }}
           </a>
           <div class="pt-3">
             <button
               @click="handleGetStartedMobile"
-              class="w-full text-center px-3 py-2 rounded-md text-base font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition duration-150 shadow-sm"
+              class="w-full text-center px-3 py-2 rounded-lg text-base font-semibold text-white bg-blue-600 hover:bg-blue-700 transition duration-150"
             >
               Get Started Free
             </button>
@@ -101,18 +102,22 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
-// Navigation items data
 const navigation = [
-  { name: 'How It Works', href: '#' },
-  { name: 'Features', href: '#' },
-  { name: 'Credits', href: '#' },
-  { name: 'Referral', href: '#' }
+  { name: 'How It Works', sectionId: 'how-it-works' },
+  { name: 'Features',     sectionId: 'features' },
+  { name: 'Credits',      sectionId: 'pricing' },
+  { name: 'Referral',     sectionId: 'referral' },
 ];
 
 const menuOpen = ref(false);
 
-// Emit custom event for parent component
-const emit = defineEmits(['get-started']);
+const scrollTo = (sectionId) => {
+  const el = document.getElementById(sectionId);
+  if (!el) return;
+  const offset = 64; // navbar height
+  const top = el.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top, behavior: 'smooth' });
+};
 
 const toggleMenu = () => {
   menuOpen.value = !menuOpen.value;
@@ -123,11 +128,11 @@ const closeMenu = () => {
 };
 
 const handleGetStarted = () => {
-  emit('get-started');
+  scrollTo('pricing');
 };
 
 const handleGetStartedMobile = () => {
-  emit('get-started');
+  scrollTo('pricing');
   closeMenu();
 };
 

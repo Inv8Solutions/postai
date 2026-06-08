@@ -1,159 +1,212 @@
 <template>
-  <div class="bg-white">
-    <!-- Hero Section with Cross Texture Background -->
-    <section class="py-4 md:py-4 px-4 relative overflow-hidden">
-      <!-- Gradient Background -->
-      <div class="absolute inset-0 bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700"></div>
-      
-      <!-- Cross Pattern Texture -->
-      <div>
-        class="absolute inset-0 opacity-10"
-        style="background-image: url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 8 L20 32 M8 20 L32 20' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E\"); background-repeat: repeat; background-size: 40px 40px;">
-        </div>
-      
-      <!-- Decorative glow elements -->
-      <div class="absolute inset-0 opacity-10">
-        <div class="absolute top-0 left-0 w-72 h-72 bg-white rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
-      </div>
-      
-      <div class="max-w-7xl mx-auto relative z-10">
-        <div class="grid md:grid-cols-2 gap-12 items-center">
-          <!-- Left Column - Content -->
-          <div>
-            <!-- AI Badge -->
-            <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-white/20">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              <span>AI POWERED FACEBOOK CONTENT FOR SMALL BUSINESSES</span>
-            </div>
+  <section
+    class="relative overflow-hidden flex items-center"
+    style="min-height: calc(100vh - 64px); background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1d4ed8 100%); padding: 80px 0 0;"
+  >
+    <!-- Cross pattern texture -->
+    <div class="hero-texture absolute inset-0 pointer-events-none"></div>
 
-            <!-- Main Heading -->
-            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-              Never Run Out of <span class="text-indigo-200">Facebook Posts</span> for Your Business
-            </h1>
+    <div class="max-w-7xl mx-auto px-6 relative z-10 w-full">
+      <div class="grid md:grid-cols-2 gap-14 items-center pb-20">
 
-            <!-- Description -->
-            <p class="text-lg text-indigo-100 mb-8">
-              PostAI creates branded Facebook posts in minutes. We write your captions, design your content, and schedule it to your Facebook Page automatically.
-            </p>
+        <!-- Left Column -->
+        <div class="flex flex-col">
 
-            <!-- Features List -->
-            <div class="space-y-3 mb-8">
-              <div v-for="feature in heroFeatures" :key="feature.text" class="flex items-center gap-3">
-                <svg class="w-5 h-5 text-green-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <!-- Badge pill -->
+          <div
+            class="inline-flex items-center text-white/85 text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-6 w-fit border"
+            style="background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2);"
+          >
+            AI POWERED FACEBOOK CONTENT FOR SMALL BUSINESSES
+          </div>
+
+          <!-- Headline -->
+          <h1
+            class="text-5xl font-black text-white leading-tight mb-5"
+            style="letter-spacing: -1.5px; font-size: clamp(34px, 4.5vw, 54px);"
+          >
+            Never Run Out of<br />
+            Facebook Posts for<br />
+            <span class="text-yellow-400">Your Business</span>
+          </h1>
+
+          <!-- Subtext -->
+          <p class="text-lg mb-7 leading-relaxed max-w-md" style="color: rgba(255,255,255,0.78);">
+            PostAI creates branded Facebook posts in minutes. We write your captions, design your content, and schedule it to your Facebook Page automatically.
+          </p>
+
+          <!-- Checkmarks -->
+          <div class="flex flex-col gap-2.5 mb-8">
+            <div v-for="feature in heroFeatures" :key="feature" class="flex items-center gap-3">
+              <div
+                class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 bg-yellow-400"
+              >
+                <svg class="w-3 h-3 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                <span class="text-indigo-100">{{ feature.text }}</span>
+              </div>
+              <span class="font-medium text-sm" style="color: rgba(255,255,255,0.9);">{{ feature }}</span>
+            </div>
+          </div>
+
+          <!-- CTA Buttons -->
+          <div class="flex gap-3 flex-wrap items-start mb-6">
+            <button
+              @click="handleStartFree"
+              class="flex flex-col items-center bg-yellow-400 text-gray-900 font-bold px-8 py-3.5 rounded-xl hover:bg-yellow-500 transition-all"
+              style="box-shadow: 0 8px 24px rgba(234,179,8,0.35); line-height: 1.2;"
+            >
+              <span class="text-base font-bold">Start Free →</span>
+              <span class="text-xs font-medium" style="opacity: 0.7;">No credit card required</span>
+            </button>
+            <button
+              @click="handleWatchHowItWorks"
+              class="flex items-center gap-2 text-white font-semibold px-6 py-3.5 rounded-xl hover:bg-white/25 transition-all border backdrop-blur-sm"
+              style="background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3);"
+            >
+              <span class="text-xs">▶</span>
+              <span>Watch How It Works</span>
+            </button>
+          </div>
+
+          <!-- Trust text -->
+          <p class="text-sm" style="color: rgba(255,255,255,0.5);">🔒 Secure. Easy. Built for Filipino small businesses.</p>
+        </div>
+
+        <!-- Right Column - App Mockup -->
+        <div class="flex justify-center items-end">
+          <div
+            class="flex rounded-2xl overflow-hidden w-full"
+            style="max-width: 520px; box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);"
+          >
+            <!-- Sidebar -->
+            <div class="shrink-0 flex flex-col py-5" style="width: 150px; background: #0f172a;">
+              <div
+                class="flex items-center gap-1.5 px-4 pb-4 mb-2"
+                style="border-bottom: 1px solid rgba(255,255,255,0.08);"
+              >
+                <span class="text-yellow-400 text-base">⚡</span>
+                <span class="text-white text-xs font-black">PostAI</span>
+              </div>
+              <nav class="flex flex-col flex-1">
+                <a
+                  v-for="item in sidebarItems"
+                  :key="item.name"
+                  class="text-xs px-4 py-2.5 cursor-default transition-all"
+                  :style="item.active
+                    ? 'background: #1d4ed8; color: white; font-weight: 700; border-left: 3px solid #facc15;'
+                    : 'color: rgba(255,255,255,0.55);'"
+                >
+                  {{ item.icon }} {{ item.name }}
+                </a>
+              </nav>
+              <div
+                class="mx-3 mt-3 rounded-xl p-3 text-center"
+                style="background: rgba(255,255,255,0.08);"
+              >
+                <div class="text-xs uppercase tracking-wide mb-1" style="color: rgba(255,255,255,0.5); font-size: 10px; letter-spacing: 0.06em;">Credits Left</div>
+                <div class="text-white font-black leading-none" style="font-size: 28px;">25</div>
+                <button
+                  class="mt-2 w-full rounded-lg text-gray-900 font-bold bg-yellow-400"
+                  style="font-size: 11px; padding: 5px 0;"
+                >Top Up →</button>
               </div>
             </div>
 
-            <!-- CTA Buttons -->
-            <div class="flex flex-col sm:flex-row gap-4 mb-8">
-              <button @click="handleStartFree" class="px-6 py-3 bg-white text-indigo-700 font-semibold rounded-lg hover:bg-indigo-50 transition shadow-lg">
-                Start Free →
-              </button>
-              <button @click="handleWatchHowItWorks" class="px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-semibold rounded-lg hover:bg-white/20 transition flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Watch How It Works
-              </button>
-            </div>
+            <!-- Main Panel -->
+            <div class="flex-1 bg-white flex flex-col p-4 gap-3">
+              <!-- Header -->
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <div class="text-sm font-black text-gray-900">Your Post Preview</div>
+                  <div class="text-xs text-gray-400">Review and approve your post</div>
+                </div>
+                <button
+                  class="bg-gray-100 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600"
+                  style="padding: 6px 10px; white-space: nowrap;"
+                >↻ Regenerate</button>
+              </div>
 
-            <!-- Trust Badge -->
-            <p class="text-sm text-indigo-200">
-              Secure. Easy. Built for Filipino small businesses.
-            </p>
-          </div>
-
-          <!-- Right Column - Image Placeholder -->
-          <div class="relative">
-            <div class="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden shadow-xl border border-white/20">
-              <!-- Image Placeholder -->
-              <div class="aspect-video bg-white/5 flex items-center justify-center">
-                <div class="text-center p-8">
-                  <svg class="w-16 h-16 mx-auto text-indigo-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                  </svg>
-                  <p class="text-indigo-200">Dashboard Preview Image</p>
-                  <p class="text-xs text-indigo-300/70 mt-1">Placeholder - Add your image here</p>
+              <!-- FB Post preview -->
+              <div class="rounded-xl overflow-hidden" style="background: #f1f5f9;">
+                <!-- Post header -->
+                <div class="bg-white flex items-center gap-2 px-3 py-2">
+                  <div
+                    class="rounded-full flex items-center justify-center text-sm shrink-0"
+                    style="width: 28px; height: 28px; background: #dbeafe;"
+                  >🍱</div>
+                  <div>
+                    <div class="text-xs font-bold text-gray-900">Lola's Carinderia</div>
+                    <div class="text-xs text-gray-400">Just now · 🌐</div>
+                  </div>
+                </div>
+                <!-- Caption -->
+                <div class="bg-white px-3 pb-2 text-xs text-gray-800 leading-relaxed">
+                  Masarap na ulam, budget-friendly pa! 😋<br />
+                  Kain na sa Lola's Carinderia! ❤️<br />
+                  Open daily 7AM – 8PM
+                </div>
+                <!-- Yellow image card -->
+                <div class="bg-yellow-400 px-3 py-4 flex items-center justify-between">
+                  <div>
+                    <div class="font-black leading-tight" style="color: #1e3a8a; font-size: 14px; letter-spacing: -0.3px;">
+                      SARAP NA<br />ABOT-KAYA<br />ARAW-ARAW!
+                    </div>
+                    <div class="font-black mt-1.5" style="color: #1d4ed8; font-size: 10px; letter-spacing: 0.02em;">
+                      LOLA'S<br />CARINDERIA
+                    </div>
+                  </div>
+                  <div style="font-size: 42px; line-height: 1;">🍲</div>
                 </div>
               </div>
+
+              <!-- Action buttons -->
+              <div class="flex gap-2">
+                <button
+                  class="flex-1 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700"
+                  style="padding: 9px;"
+                >✏️ Edit</button>
+                <button
+                  class="rounded-lg text-xs font-bold text-white bg-blue-600"
+                  style="padding: 9px; flex: 2;"
+                >📅 Approve &amp; Schedule</button>
+              </div>
             </div>
-            <!-- Decorative element -->
-            <div class="absolute -bottom-4 -left-4 w-24 h-24 bg-indigo-400 rounded-full opacity-30 blur-xl -z-10"></div>
-            <div class="absolute -top-4 -right-4 w-32 h-32 bg-blue-400 rounded-full opacity-30 blur-xl -z-10"></div>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- Dashboard Section (Keep your existing dashboard code below) -->
-    <!-- ... -->
-  </div>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 
-// Hero section features
 const heroFeatures = ref([
-  { text: 'No design skills needed' },
-  { text: 'No caption writing required' },
-  { text: 'First post ready in under 10 minutes' }
+  'No design skills needed',
+  'No caption writing required',
+  'First post ready in under 10 minutes',
 ]);
 
-// Sidebar menu items with icons
-const sidebarMenu = ref([
-  { name: 'Dashboard', icon: 'DashboardIcon', active: true },
-  { name: 'Create Post', icon: 'CreateIcon', active: false },
-  { name: 'Scheduled', icon: 'ScheduleIcon', active: false },
-  { name: 'Brand Kit', icon: 'BrandIcon', active: false },
-  { name: 'Credits', icon: 'CreditsIcon', active: false },
-  { name: 'Referrals', icon: 'ReferralIcon', active: false },
-  { name: 'Settings', icon: 'SettingsIcon', active: false }
+const sidebarItems = ref([
+  { name: 'Dashboard',    icon: '🏠', active: false },
+  { name: 'Create Post',  icon: '✏️', active: true  },
+  { name: 'Scheduled',    icon: '📅', active: false },
+  { name: 'Brand Kit',    icon: '🎨', active: false },
+  { name: 'Credits',      icon: '⚡', active: false },
+  { name: 'Referrals',    icon: '👥', active: false },
+  { name: 'Settings',     icon: '⚙️', active: false },
 ]);
 
-// Emit events for parent component
-const emit = defineEmits([
-  'start-free',
-  'watch-how-it-works',
-  'regenerate',
-  'edit',
-  'approve'
-]);
-
+const emit = defineEmits(['start-free', 'watch-how-it-works']);
 const handleStartFree = () => emit('start-free');
 const handleWatchHowItWorks = () => emit('watch-how-it-works');
-const handleRegenerate = () => emit('regenerate');
-const handleEdit = () => emit('edit');
-const handleApprove = () => emit('approve');
-
-// Icon components (simplified as inline SVGs)
-const DashboardIcon = { template: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>' };
-const CreateIcon = { template: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>' };
-const ScheduleIcon = { template: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>' };
-const BrandIcon = { template: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>' };
-const CreditsIcon = { template: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>' };
-const ReferralIcon = { template: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>' };
-const SettingsIcon = { template: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>' };
-
-// Map icon names to components
-const iconMap = {
-  DashboardIcon,
-  CreateIcon,
-  ScheduleIcon,
-  BrandIcon,
-  CreditsIcon,
-  ReferralIcon,
-  SettingsIcon
-};
-
-// Replace icon strings with actual components in sidebarMenu
-sidebarMenu.value.forEach(item => {
-  item.icon = iconMap[item.icon];
-});
 </script>
+
+<style scoped>
+.hero-texture {
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+</style>
