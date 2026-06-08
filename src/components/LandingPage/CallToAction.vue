@@ -44,9 +44,9 @@
       </div>
 
       <!-- Button -->
-      <a href="#" class="w-full flex items-center justify-center bg-yellow-400 text-gray-900 font-black rounded-2xl text-xl hover:bg-yellow-500 hover:-translate-y-0.5 transition-all" style="max-width:500px; padding: 18px 64px; letter-spacing: -0.3px; box-shadow: 0 12px 36px rgba(234,179,8,0.4);">
+      <RouterLink to="/generate" class="w-full flex items-center justify-center bg-yellow-400 text-gray-900 font-black rounded-2xl text-xl hover:bg-yellow-500 hover:-translate-y-0.5 transition-all" style="max-width:500px; padding: 18px 64px; letter-spacing: -0.3px; box-shadow: 0 12px 36px rgba(234,179,8,0.4);">
         Start Free Now →
-      </a>
+      </RouterLink>
       <p class="text-sm -mt-3" style="color: rgba(255,255,255,0.55);">No credit card required. Cancel anytime.</p>
     </div>
   </section>

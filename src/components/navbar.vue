@@ -101,6 +101,9 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const navigation = [
   { name: 'How It Works', sectionId: 'how-it-works' },
@@ -128,11 +131,11 @@ const closeMenu = () => {
 };
 
 const handleGetStarted = () => {
-  scrollTo('pricing');
+  router.push('/auth');
 };
 
 const handleGetStartedMobile = () => {
-  scrollTo('pricing');
+  router.push('/auth');
   closeMenu();
 };
 

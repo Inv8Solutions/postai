@@ -182,6 +182,9 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const heroFeatures = ref([
   'No design skills needed',
@@ -199,9 +202,11 @@ const sidebarItems = ref([
   { name: 'Settings',     icon: '⚙️', active: false },
 ]);
 
-const emit = defineEmits(['start-free', 'watch-how-it-works']);
-const handleStartFree = () => emit('start-free');
-const handleWatchHowItWorks = () => emit('watch-how-it-works');
+const handleStartFree = () => router.push('/generate');
+const handleWatchHowItWorks = () => {
+  const el = document.getElementById('how-it-works');
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+};
 </script>
 
 <style scoped>
