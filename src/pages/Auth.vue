@@ -64,6 +64,11 @@
           >Sign Up</button>
         </div>
 
+        <!-- Error Message Display -->
+        <div v-if="errorMessage" class="auth-error">
+          {{ errorMessage }}
+        </div>
+
         <!-- ===== LOGIN FORM ===== -->
         <form v-if="activeTab === 'login'" @submit.prevent="handleLogin">
           <h1 class="auth-form-title">Welcome back!</h1>
@@ -73,7 +78,14 @@
             <label class="af-label">Email Address</label>
             <div class="af-input-wrap">
               <span class="af-icon">✉</span>
-              <input v-model="login.email" type="email" class="af-input" placeholder="youremail@gmail.com" required />
+              <input 
+                v-model="login.email" 
+                type="email" 
+                class="af-input" 
+                placeholder="youremail@gmail.com" 
+                required 
+                :disabled="isLoading"
+              />
             </div>
           </div>
 
@@ -90,6 +102,7 @@
                 class="af-input"
                 placeholder="••••••••"
                 required
+                :disabled="isLoading"
               />
               <button type="button" class="af-toggle-pw" @click="showLoginPw = !showLoginPw">
                 {{ showLoginPw ? '🙈' : '👁' }}
@@ -97,7 +110,9 @@
             </div>
           </div>
 
-          <button type="submit" class="af-submit">Log In →</button>
+          <button type="submit" class="af-submit" :disabled="isLoading">
+            {{ isLoading ? 'Logging in...' : 'Log In →' }}
+          </button>
           <p class="af-switch">Don't have an account? <a href="#" @click.prevent="switchTab('signup')">Sign up free</a></p>
         </form>
 
@@ -121,14 +136,28 @@
               <label class="af-label">Your Name</label>
               <div class="af-input-wrap">
                 <span class="af-icon">👤</span>
-                <input v-model="signup.name" type="text" class="af-input" placeholder="Maria Santos" required />
+                <input 
+                  v-model="signup.name" 
+                  type="text" 
+                  class="af-input" 
+                  placeholder="Maria Santos" 
+                  required 
+                  :disabled="isLoading"
+                />
               </div>
             </div>
             <div class="af-field">
               <label class="af-label">Email Address</label>
               <div class="af-input-wrap">
                 <span class="af-icon">✉</span>
-                <input v-model="signup.email" type="email" class="af-input" placeholder="youremail@gmail.com" required />
+                <input 
+                  v-model="signup.email" 
+                  type="email" 
+                  class="af-input" 
+                  placeholder="youremail@gmail.com" 
+                  required 
+                  :disabled="isLoading"
+                />
               </div>
             </div>
             <div class="af-field">
@@ -141,13 +170,16 @@
                   class="af-input"
                   placeholder="At least 8 characters"
                   required
+                  :disabled="isLoading"
                 />
                 <button type="button" class="af-toggle-pw" @click="showSignupPw = !showSignupPw">
                   {{ showSignupPw ? '🙈' : '👁' }}
                 </button>
               </div>
             </div>
-            <button type="button" class="af-submit" @click="signupNext">Continue →</button>
+            <button type="button" class="af-submit" @click="signupNext" :disabled="isLoading">
+              Continue →
+            </button>
           </div>
 
           <!-- Step 2: Business info -->
@@ -156,7 +188,13 @@
               <label class="af-label">Business Name <span class="af-req">*</span></label>
               <div class="af-input-wrap">
                 <span class="af-icon">🏪</span>
-                <input v-model="signup.bizName" type="text" class="af-input" placeholder="Nanay's Carinderia" />
+                <input 
+                  v-model="signup.businessName" 
+                  type="text" 
+                  class="af-input" 
+                  placeholder="Nanay's Carinderia" 
+                  :disabled="isLoading"
+                />
               </div>
             </div>
             <div class="af-field">
@@ -167,8 +205,9 @@
                   :key="cat.val"
                   type="button"
                   class="su-cat"
-                  :class="{ active: signup.category === cat.val }"
-                  @click="signup.category = cat.val"
+                  :class="{ active: signup.businessCategory === cat.val }"
+                  @click="signup.businessCategory = cat.val"
+                  :disabled="isLoading"
                 >
                   <span>{{ cat.icon }}</span> {{ cat.label }}
                 </button>
@@ -178,12 +217,22 @@
               <label class="af-label">Business Tagline <span class="af-hint">(optional)</span></label>
               <div class="af-input-wrap">
                 <span class="af-icon">💬</span>
-                <input v-model="signup.tagline" type="text" class="af-input" placeholder="e.g. Lutong bahay, araw-araw!" />
+                <input 
+                  v-model="signup.businessTagline" 
+                  type="text" 
+                  class="af-input" 
+                  placeholder="e.g. Lutong bahay, araw-araw!" 
+                  :disabled="isLoading"
+                />
               </div>
             </div>
             <div class="su-nav-row">
-              <button type="button" class="af-back" @click="signupStep = 1">← Back</button>
-              <button type="button" class="af-submit af-submit--flex" @click="signupNext">Continue →</button>
+              <button type="button" class="af-back" @click="signupStep = 1" :disabled="isLoading">
+                ← Back
+              </button>
+              <button type="button" class="af-submit af-submit--flex" @click="signupNext" :disabled="isLoading">
+                Continue →
+              </button>
             </div>
           </div>
 
@@ -197,8 +246,9 @@
                   :key="tone.val"
                   type="button"
                   class="su-tone"
-                  :class="{ active: signup.tone === tone.val }"
-                  @click="signup.tone = tone.val"
+                  :class="{ active: signup.brandTone === tone.val }"
+                  @click="signup.brandTone = tone.val"
+                  :disabled="isLoading"
                 >
                   <span>{{ tone.icon }}</span>
                   <div>
@@ -218,14 +268,19 @@
                   class="su-lang"
                   :class="{ active: signup.language === lang.val }"
                   @click="signup.language = lang.val"
+                  :disabled="isLoading"
                 >
                   {{ lang.flag }} {{ lang.label }}
                 </button>
               </div>
             </div>
             <div class="su-nav-row">
-              <button type="button" class="af-back" @click="signupStep = 2">← Back</button>
-              <button type="submit" class="af-submit af-submit--flex">Create Account →</button>
+              <button type="button" class="af-back" @click="signupStep = 2" :disabled="isLoading">
+                ← Back
+              </button>
+              <button type="submit" class="af-submit af-submit--flex" :disabled="isLoading">
+                {{ isLoading ? 'Creating Account...' : 'Create Account →' }}
+              </button>
             </div>
           </div>
 
@@ -248,18 +303,122 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
+import { loginAndVerifyUser, registerAndCreateProfile } from '../services/authService';
+import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/userStore'
 
+// Initialize router and user store
+const router = useRouter()
+const userStore = useUserStore()
+
+// Tab logic and form state
 const activeTab = ref('signup');
 const signupStep = ref(1);
 const showLoginPw = ref(false);
 const showSignupPw = ref(false);
 
+// Login logic and form state
 const login = reactive({ email: '', password: '' });
+const errorMessage = ref('');
+const isLoading = ref(false);
+
+const submitLogin = async () => {
+  errorMessage.value = '';
+  isLoading.value = true;
+
+  try {
+    // FIX: login is reactive, not a ref - use login.email directly, not login.value.email
+    const userData = await loginAndVerifyUser(login.email, login.password);
+    
+    console.log("Success! Authenticated and verified:", userData);
+    
+    // Save user data (including document ID) to Pinia store
+    userStore.setUser({
+      documentId: userData.documentId,
+      email: userData.email,
+      name: userData.name
+    });
+    
+    // Redirect to dashboard
+    router.push('/dashboard/main');
+    
+  } catch (error) {
+    // Catches wrong auth credentials OR the missing Firestore doc error
+    errorMessage.value = error.message;
+  } finally {
+    isLoading.value = false;
+  }
+  // In Auth.vue submitLogin function
+  userStore.setUser({
+    documentId: userData.documentId,
+    email: userData.email,
+    name: userData.name  // Add this - assumes your Firestore user doc has a 'name' field
+  });
+};
+
+// Signup logic and form state
 const signup = reactive({
-  name: '', email: '', password: '',
-  bizName: '', category: '', tagline: '',
-  tone: 'Friendly', language: 'Filipino',
+  name: '', 
+  email: '', 
+  password: '',
+  businessName: '', 
+  businessCategory: '', 
+  businessTagline: '',
+  brandTone: 'Friendly', 
+  language: 'Filipino',
 });
+
+// Renamed to avoid confusion - this is the actual signup function
+const submitSignup = async () => {
+  errorMessage.value = '';
+  
+  // Basic validation checks
+  if (!signup.businessCategory || !signup.brandTone || !signup.language) {
+    errorMessage.value = "Please fill out all options before registering.";
+    return;
+  }
+
+  isLoading.value = true;
+  showToast('Creating your account…', 'blue');
+  
+  try {
+    const result = await registerAndCreateProfile({ ...signup });
+    console.log("Registration successful! Created Profile:", result.profile);
+    showToast('Account created! Welcome to PostAI 🎉', 'green');
+    
+    // FIX: Add redirect after successful signup
+    // Option 1: Auto-login after signup (if your register function returns user data)
+    if (result.userData) {
+      userStore.setUser({
+        documentId: result.userData.documentId,
+        email: signup.email,
+      });
+      router.push('/dashboard/main');
+    } else {
+      // Option 2: Redirect to login tab
+      showToast('Please log in with your new account', 'blue');
+      activeTab.value = 'login';
+      signupStep.value = 1;
+      // Clear signup form
+      Object.assign(signup, {
+        name: '', email: '', password: '',
+        businessName: '', businessCategory: '', businessTagline: '',
+        brandTone: 'Friendly', language: 'Filipino',
+      });
+    }
+    
+  } catch (error) {
+    if (error.code === 'auth/email-already-in-use') {
+      errorMessage.value = "This email is already registered.";
+      showToast('This email is already in use. Please log in or use a different email.', 'yellow');
+    } else {
+      errorMessage.value = error.message;
+      showToast(error.message, 'yellow');
+    }
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 const toast = reactive({ show: false, message: '', type: '' });
 
@@ -307,26 +466,31 @@ const switchTab = (tab) => {
 const signupNext = () => {
   if (signupStep.value === 1) {
     if (!signup.name || !signup.email || !signup.password) {
-      showToast('Please fill in all fields.', 'yellow'); return;
+      showToast('Please fill in all fields.', 'yellow'); 
+      return;
     }
     if (signup.password.length < 8) {
-      showToast('Password must be at least 8 characters.', 'yellow'); return;
+      showToast('Password must be at least 8 characters.', 'yellow'); 
+      return;
     }
   }
   if (signupStep.value === 2) {
-    if (!signup.bizName || !signup.category) {
-      showToast('Please enter your business name and category.', 'yellow'); return;
+    if (!signup.businessName || !signup.businessCategory) {
+      showToast('Please enter your business name and category.', 'yellow'); 
+      return;
     }
   }
   signupStep.value++;
 };
 
+// FIX: These handler functions now call the correct async functions
 const handleLogin = () => {
   showToast('Logging you in…', 'blue');
+  submitLogin();
 };
 
 const handleSignup = () => {
-  showToast('Account created! Welcome to PostAI 🎉', 'green');
+  submitSignup(); // Changed from handleSignUp to submitSignup
 };
 </script>
 
