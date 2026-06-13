@@ -229,14 +229,14 @@
       <!-- Dark quote banner -->
       <div class="rounded-2xl p-8 flex items-center gap-7 flex-wrap relative overflow-hidden text-left" style="background: #1e40af;">
         <div class="shrink-0" style="min-width: 160px;">
-          <div class="font-black text-white/15 leading-none mb-2" style="font-size: 56px; font-family: Georgia, serif;">"</div>
+          <div class="font-black text-white/15 leading-none mb-2" style="font-size: 56px;">"</div>
           <div class="text-xl font-black text-white">Sound familiar?</div>
           <div class="text-xl font-black text-yellow-400">PostAI is the easier way.</div>
         </div>
         <div class="w-px h-20 shrink-0" style="background: rgba(255,255,255,0.15);"></div>
         <div class="flex gap-3 flex-1 flex-wrap">
           <div v-for="quote in quotes" :key="quote.text" class="rounded-xl p-3.5 flex flex-col gap-1.5 flex-1" style="background: rgba(255,255,255,0.1); min-width: 140px;">
-            <span class="font-black text-yellow-400 leading-none" style="font-size: 24px; font-family: Georgia, serif;">"</span>
+            <span class="font-black text-yellow-400 leading-none" style="font-size: 24px;">"</span>
             <p class="text-sm font-bold text-white leading-snug">{{ quote.text }}</p>
             <span class="text-xs" style="color: rgba(255,255,255,0.5);">— {{ quote.attr }}</span>
           </div>
