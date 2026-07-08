@@ -7,3 +7,7 @@
 - lucide ```@lucide/vue```
 - vue-router
 - date-fns
+
+## Contributing
+
+Before you start coding, read the setup and branching/PR workflow in [CONTRIBUTING.md](./CONTRIBUTING.md).
