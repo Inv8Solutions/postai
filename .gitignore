@@ -27,3 +27,4 @@ functions/lib
 functions/node_modules
 functions/.env
 .env
+.agent/*
