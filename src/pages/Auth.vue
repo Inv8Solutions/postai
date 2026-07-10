@@ -327,33 +327,25 @@ const submitLogin = async () => {
   isLoading.value = true;
 
   try {
-    // FIX: login is reactive, not a ref - use login.email directly, not login.value.email
+    // login is reactive, not a ref - use login.email directly
     const userData = await loginAndVerifyUser(login.email, login.password);
-    
-    console.log("Success! Authenticated and verified:", userData);
-    
-    // Save user data (including document ID) to Pinia store
+
+    // Map service return shape { uid, email, profile } → store payload.
     userStore.setUser({
-      documentId: userData.documentId,
+      documentId: userData.uid,
       email: userData.email,
-      name: userData.name
+      name: userData.profile.name,
     });
-    
+
     // Redirect to dashboard
     router.push('/dashboard/main');
-    
+
   } catch (error) {
     // Catches wrong auth credentials OR the missing Firestore doc error
     errorMessage.value = error.message;
   } finally {
     isLoading.value = false;
   }
-  // In Auth.vue submitLogin function
-  userStore.setUser({
-    documentId: userData.documentId,
-    email: userData.email,
-    name: userData.name  // Add this - assumes your Firestore user doc has a 'name' field
-  });
 };
 
 // Signup logic and form state
@@ -382,31 +374,19 @@ const submitSignup = async () => {
   showToast('Creating your account…', 'blue');
   
   try {
+    // createUserWithEmailAndPassword already signs the user in, so we can
+    // persist the profile to the store and go straight to the dashboard.
     const result = await registerAndCreateProfile({ ...signup });
-    console.log("Registration successful! Created Profile:", result.profile);
     showToast('Account created! Welcome to PostAI 🎉', 'green');
-    
-    // FIX: Add redirect after successful signup
-    // Option 1: Auto-login after signup (if your register function returns user data)
-    if (result.userData) {
-      userStore.setUser({
-        documentId: result.userData.documentId,
-        email: signup.email,
-      });
-      router.push('/dashboard/main');
-    } else {
-      // Option 2: Redirect to login tab
-      showToast('Please log in with your new account', 'blue');
-      activeTab.value = 'login';
-      signupStep.value = 1;
-      // Clear signup form
-      Object.assign(signup, {
-        name: '', email: '', password: '',
-        businessName: '', businessCategory: '', businessTagline: '',
-        brandTone: 'Friendly', language: 'Filipino',
-      });
-    }
-    
+
+    // Service returns { user, profile } — map to the store payload.
+    userStore.setUser({
+      documentId: result.user.uid,
+      email: result.profile.email,
+      name: result.profile.name,
+    });
+    router.push('/dashboard/main');
+
   } catch (error) {
     if (error.code === 'auth/email-already-in-use') {
       errorMessage.value = "This email is already registered.";
