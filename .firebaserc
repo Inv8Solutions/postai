@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "demo-postai"
+    "default": "demo-postai",
+    "prod": "postai-7a018"
   }
 }
