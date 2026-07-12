@@ -57,6 +57,33 @@ const graphGet = async (
   return body;
 };
 
+// Performs a Graph API DELETE and returns the parsed body, throwing on any
+// Graph-level error. Tokens are passed in params and never logged.
+const graphDelete = async (
+  path: string,
+  params: Record<string, string>,
+): Promise<GraphBody> => {
+  const url = new URL(`${GRAPH_BASE}${path}`);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+
+  const response = await fetch(url.toString(), { method: "DELETE" });
+  const body = (await response.json()) as GraphBody;
+
+  if (!response.ok || body.error) {
+    logger.error("Graph API error", {
+      path,
+      status: response.status,
+      code: body.error?.code,
+      type: body.error?.type,
+      message: body.error?.message,
+    });
+    throw new Error(body.error?.message ?? "Graph API request failed.");
+  }
+  return body;
+};
+
 // Callable: exchange a short-lived user token for a long-lived Page token and
 // persist the connection under users/{uid}/facebookConnection/{pageId}. The Page
 // token is a server-only field — only non-sensitive metadata is returned.
@@ -172,3 +199,78 @@ export const connectFacebookPage = onCall(
     }
   },
 );
+
+// Callable: disconnect a previously connected Page. Deletes the stored
+// connection document (which holds the server-only Page access token) and makes
+// a best-effort call to revoke the app's Graph permissions. Deleting the stored
+// token is the source of truth — it always runs even if revocation fails, so a
+// successful call returns the user to the not-connected state.
+export const disconnectFacebookPage = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "You must be signed in to disconnect a Facebook Page.",
+    );
+  }
+
+  const data = request.data as { pageId?: string };
+  const pageId = (data?.pageId ?? "").trim();
+  if (!pageId) {
+    throw new HttpsError(
+      "invalid-argument",
+      "A Page id is required to disconnect.",
+    );
+  }
+
+  const docRef = db
+    .collection("users")
+    .doc(uid)
+    .collection("facebookConnection")
+    .doc(pageId);
+
+  try {
+    const snap = await docRef.get();
+    // Grab the token before deleting so we can attempt Graph revocation. If the
+    // connection doesn't exist we treat the disconnect as already done
+    // (idempotent) rather than erroring.
+    const pageAccessToken = snap.exists
+      ? (snap.data()?.pageAccessToken as string | undefined)
+      : undefined;
+
+    // Delete first — removing the stored token is the acceptance criterion and
+    // must not be blocked by a flaky Graph call.
+    await docRef.delete();
+
+    // Best-effort permission revocation with the Page token. Non-fatal: the
+    // token is already gone, so a failure here doesn't leave a live connection.
+    let revoked = false;
+    if (pageAccessToken) {
+      try {
+        await graphDelete("/me/permissions", { access_token: pageAccessToken });
+        revoked = true;
+      } catch (revokeErr) {
+        logger.warn("Facebook permission revocation failed (non-fatal)", {
+          uid,
+          pageId,
+          message:
+            revokeErr instanceof Error ? revokeErr.message : String(revokeErr),
+        });
+      }
+    }
+
+    logger.info("Facebook Page disconnected", { uid, pageId, revoked });
+    return { pageId, revoked };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    logger.error("disconnectFacebookPage failed", {
+      uid,
+      pageId,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw new HttpsError(
+      "internal",
+      "We couldn't disconnect your Facebook Page. Please try again.",
+    );
+  }
+});

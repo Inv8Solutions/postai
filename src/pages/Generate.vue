@@ -224,6 +224,10 @@
               <div class="sx-page-check">✓</div>
             </div>
             <p v-if="managedPages.length > 1" class="sx-switch-page">Not the right page? <a href="#" @click.prevent="openPagePicker">Switch page →</a></p>
+            <button class="sx-disconnect" :disabled="fbDisconnecting" @click="disconnectFacebook">
+              {{ fbDisconnecting ? 'Disconnecting…' : 'Disconnect this Page' }}
+            </button>
+            <p class="sx-fb-note">You can disconnect anytime — this removes PostAI's access to your Page.</p>
           </template>
         </div>
 
@@ -636,7 +640,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { facebookLogin, fetchManagedPages, connectFacebookPage, loadFacebookSdk, fetchConnectedPages } from '../services/facebookService';
+import { facebookLogin, fetchManagedPages, connectFacebookPage, disconnectFacebookPage, loadFacebookSdk, fetchConnectedPages } from '../services/facebookService';
 import { auth } from '../firebase';
 import { useUserStore } from '../stores/userStore';
 
@@ -648,6 +652,7 @@ const selectedTone   = ref('Friendly');
 const logoUrl        = ref('');
 const fbConnected    = ref(false);
 const fbConnecting   = ref(false);
+const fbDisconnecting = ref(false);
 const fbUserToken    = ref('');
 const managedPages   = ref([]);   // ManagedPage[] from the Graph API
 const selectedPage   = ref(null); // the ManagedPage the user chose
@@ -956,6 +961,30 @@ function openPagePicker() {
     showPagePicker.value = true;
   } else {
     connectFacebook();
+  }
+}
+
+// Disconnect the currently selected Page: the callable deletes the stored token
+// (and best-effort revokes Graph permissions), then we reset the UI back to the
+// not-connected state so the user can reconnect a fresh Page.
+async function disconnectFacebook() {
+  const page = selectedPage.value;
+  if (!page) return;
+
+  fbDisconnecting.value = true;
+  try {
+    await disconnectFacebookPage(page.id);
+    // Drop the disconnected Page from local state.
+    managedPages.value = managedPages.value.filter((p) => p.id !== page.id);
+    selectedPage.value = managedPages.value[0] || null;
+    fbConnected.value = false;
+    fbUserToken.value = '';
+    showToast(`✓ Disconnected ${page.name}.`, 'green');
+  } catch (err) {
+    console.warn('Facebook Page disconnect failed:', err);
+    showToast(err?.message || 'Could not disconnect the Page. Please try again.', 'red');
+  } finally {
+    fbDisconnecting.value = false;
   }
 }
 
@@ -1315,6 +1344,13 @@ function simulateTopup() {
 .sx-switch-page { font-size: 12px; color: #94a3b8; text-align: center; }
 .sx-switch-page a { color: #2563eb; font-weight: 600; cursor: pointer; }
 .sx-page-photo { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.sx-disconnect {
+  width: 100%; background: #fff; border: 1.5px solid #fecaca; border-radius: 10px;
+  padding: 11px; font-size: 14px; font-weight: 700; color: #ef4444;
+  cursor: pointer; font-family: inherit; transition: all .15s; margin-top: 6px;
+}
+.sx-disconnect:hover:not(:disabled) { background: #fef2f2; border-color: #ef4444; }
+.sx-disconnect:disabled { opacity: .6; cursor: not-allowed; }
 
 /* Step 2: Page picker modal */
 .sx-picker-overlay {
