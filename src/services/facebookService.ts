@@ -11,7 +11,9 @@
 //
 // See docs/facebook.md for app setup, scopes, and token-handling rules.
 import { httpsCallable } from 'firebase/functions'
-import { functions } from '../firebase'
+import { collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { db, functions } from '../firebase'
+import type { FacebookConnectionClient } from '../types/models'
 
 const APP_ID = import.meta.env.VITE_META_APP_ID
 /** Graph API version pinned so responses stay stable across SDK updates. */
@@ -184,4 +186,24 @@ export async function connectFacebookPage(params: {
   const callable = httpsCallable<typeof params, ConnectResult>(functions, 'connectFacebookPage')
   const { data } = await callable(params)
   return data
+}
+
+/**
+ * Reads the Pages this user has already connected, most recent first. Returns
+ * client-safe metadata only — the server-only Page access token is never read
+ * or exposed. Used to pre-fill the connected state so a returning user doesn't
+ * have to re-connect.
+ */
+export async function fetchConnectedPages(uid: string): Promise<FacebookConnectionClient[]> {
+  const connectionsRef = collection(db, 'users', uid, 'facebookConnection')
+  const snap = await getDocs(query(connectionsRef, orderBy('connectedAt', 'desc')))
+  return snap.docs.map((docSnap) => {
+    const data = docSnap.data()
+    return {
+      pageId: (data.pageId as string) ?? docSnap.id,
+      pageName: (data.pageName as string) ?? 'Facebook Page',
+      scopes: (data.scopes as string[]) ?? [],
+      connectedAt: data.connectedAt,
+    }
+  })
 }
