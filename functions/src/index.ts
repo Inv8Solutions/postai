@@ -3,6 +3,8 @@ import { defineString, defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { getImageProvider, getTextProvider } from "./ai/index.js";
+import type { Language, Theme } from "./ai/index.js";
 
 initializeApp();
 const db = getFirestore();
@@ -17,6 +19,97 @@ const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
 export const healthcheck = onRequest((req, res) => {
   res.status(200).json({ status: "ok", timestamp: Date.now() });
+});
+
+const LANGUAGES: readonly Language[] = ["Filipino", "Taglish", "English"];
+const THEMES: readonly Theme[] = [
+  "promo",
+  "announcement",
+  "holiday",
+  "tips",
+  "general",
+  "product",
+];
+
+// Callable: generate a post's caption + image through the configured AI
+// providers (see functions/src/ai and docs/ai.md). Which providers run is a
+// deploy-time config choice (AI_TEXT_PROVIDER / AI_IMAGE_PROVIDER); the default
+// placeholder providers make this pipeline runnable end-to-end with no vendor.
+// This does not persist a post or spend credits — those are separate steps.
+export const generatePost = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "You must be signed in to generate a post.",
+    );
+  }
+
+  const data = request.data as {
+    language?: string;
+    theme?: string;
+    businessName?: string;
+    businessCategory?: string;
+    context?: string;
+  };
+
+  // Validate the two enum inputs; free-text fields are passed through trimmed.
+  const language = LANGUAGES.find((l) => l === data?.language);
+  const theme = THEMES.find((t) => t === data?.theme);
+  if (!language || !theme) {
+    throw new HttpsError(
+      "invalid-argument",
+      `A valid language (${LANGUAGES.join(", ")}) and theme (${THEMES.join(", ")}) are required.`,
+    );
+  }
+
+  const businessName = (data?.businessName ?? "").trim() || undefined;
+  const businessCategory = (data?.businessCategory ?? "").trim() || undefined;
+  const context = (data?.context ?? "").trim() || undefined;
+
+  try {
+    const textProvider = getTextProvider();
+    const imageProvider = getImageProvider();
+
+    const [text, image] = await Promise.all([
+      textProvider.generateCaption({
+        language,
+        theme,
+        businessName,
+        businessCategory,
+        context,
+      }),
+      imageProvider.generateImage({
+        theme,
+        businessName,
+        businessCategory,
+      }),
+    ]);
+
+    logger.info("Post generated", {
+      uid,
+      theme,
+      language,
+      textProvider: textProvider.id,
+      imageProvider: imageProvider.id,
+    });
+
+    return {
+      caption: text.caption,
+      headline: text.headline,
+      subtext: text.subtext,
+      imageUrl: image.imageUrl,
+    };
+  } catch (err) {
+    logger.error("generatePost failed", {
+      uid,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw new HttpsError(
+      "internal",
+      "We couldn't generate your post. Please try again.",
+    );
+  }
 });
 
 interface GraphError {
