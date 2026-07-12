@@ -108,15 +108,31 @@ Requested at login and reviewed by Meta before public use:
 | `pages_manage_posts` | Create and publish/schedule posts on the connected Page. |
 | `business_management` | Only if Pages are managed through Business Manager. |
 
-## App Review — required before going live
+### Where to configure them: Use Cases
+
+Meta's dashboard no longer has a standalone "App Review → Permissions and
+Features" menu — permissions now live inside a **use case**. To add these scopes:
+
+1. Left sidebar → **Use cases**.
+2. **Customize** the use case tied to Facebook Login / Pages (or add one).
+3. Open its **Permissions** tab and add `pages_show_list`,
+   `pages_read_engagement`, `pages_manage_posts`.
+4. Each row shows its access level and a **Request / Get advanced access** button
+   (that button *is* the App Review submission — see below).
+
+For dev-mode testing, just confirm the three permissions are present with
+**Standard Access**. Don't request advanced access until go-live.
+
+## App Review (advanced access) — required before going live
 
 `pages_show_list`, `pages_read_engagement`, `pages_manage_posts`, and
 `business_management` are **advanced-access** permissions. Meta grants only
 **standard access** by default, which limits a permission to users who have a
 **role on the app**. To let arbitrary end users authorize PostAI in production,
-the app must pass **App Review** for each scope.
+each scope needs **advanced access**, requested via the **Request advanced
+access** button on the permission's row in its use case's Permissions tab.
 
-App Review checklist (Meta requirements):
+Advanced-access checklist (Meta requirements):
 
 - Business verification completed for the associated business.
 - A **privacy policy URL** and a **data deletion** URL/callback set in App

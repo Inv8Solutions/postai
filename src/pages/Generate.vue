@@ -191,7 +191,7 @@
               <div class="sx-perm sx-perm--never"><span class="sx-perm-icon">🛡</span><span>We will <strong>never</strong> post without your approval</span></div>
             </div>
 
-            <button class="sx-btn-fb" :disabled="fbConnecting" @click="simulateFbConnect">
+            <button class="sx-btn-fb" :disabled="fbConnecting" @click="connectFacebook">
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                 <rect width="22" height="22" rx="6" fill="#1877F2"/>
                 <path d="M15 11h-2.5v-1.7c0-.6.5-.8.8-.8H15V6h-2.4c-2.2 0-2.8 1.6-2.8 2.8V11H8v2.8h1.8V20h2.8v-6.2H14.5L15 11z" fill="white"/>
@@ -211,15 +211,54 @@
               </div>
             </div>
             <div class="sx-page-card">
-              <div class="sx-page-avatar">{{ categoryEmoji }}</div>
+              <div class="sx-page-avatar">
+                <img v-if="selectedPage?.pictureUrl" :src="selectedPage.pictureUrl" alt="" class="sx-page-photo" />
+                <template v-else>{{ categoryEmoji }}</template>
+              </div>
               <div>
-                <div class="sx-page-name">{{ bizName || "Your Business" }}</div>
-                <div class="sx-page-meta">452 followers · Food &amp; Drink</div>
+                <div class="sx-page-name">{{ selectedPage?.name || bizName || "Your Business" }}</div>
+                <div class="sx-page-meta">
+                  {{ formatFollowers(selectedPage?.followers) }} followers<template v-if="selectedPage?.category"> · {{ selectedPage.category }}</template>
+                </div>
               </div>
               <div class="sx-page-check">✓</div>
             </div>
-            <p class="sx-switch-page">Not the right page? <a href="#" @click.prevent="showToast('Page picker coming soon', 'blue')">Switch page →</a></p>
+            <p v-if="managedPages.length > 1" class="sx-switch-page">Not the right page? <a href="#" @click.prevent="openPagePicker">Switch page →</a></p>
           </template>
+        </div>
+
+        <!-- Page picker (shown when the user manages more than one Page) -->
+        <div v-if="showPagePicker" class="sx-picker-overlay" @click.self="showPagePicker = false">
+          <div class="sx-picker" role="dialog" aria-modal="true">
+            <div class="sx-picker-header">
+              <div>
+                <div class="sx-picker-title">Choose a Page</div>
+                <div class="sx-picker-sub">Select which Page PostAI should connect.</div>
+              </div>
+              <button class="sx-picker-close" aria-label="Close" @click="showPagePicker = false">✕</button>
+            </div>
+            <div class="sx-picker-list">
+              <button
+                v-for="page in managedPages"
+                :key="page.id"
+                class="sx-picker-item"
+                :class="{ active: selectedPage?.id === page.id }"
+                @click="selectPage(page)"
+              >
+                <div class="sx-picker-avatar">
+                  <img v-if="page.pictureUrl" :src="page.pictureUrl" alt="" class="sx-page-photo" />
+                  <span v-else>📘</span>
+                </div>
+                <div class="sx-picker-info">
+                  <div class="sx-picker-name">{{ page.name }}</div>
+                  <div class="sx-picker-meta">
+                    {{ formatFollowers(page.followers) }} followers<template v-if="page.category"> · {{ page.category }}</template>
+                  </div>
+                </div>
+                <span class="sx-picker-check" :class="{ on: selectedPage?.id === page.id }">✓</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="sx-bottom-bar">
@@ -497,7 +536,7 @@
           <div class="sx-sched-card">
             <div class="sx-sched-card-icon">📘</div>
             <div class="sx-sched-card-label">Facebook Page</div>
-            <div class="sx-sched-card-val">{{ bizName || 'Your Business' }}</div>
+            <div class="sx-sched-card-val">{{ selectedPage?.name || bizName || 'Your Business' }}</div>
           </div>
           <div class="sx-sched-card">
             <div class="sx-sched-card-icon">⚡</div>
@@ -596,7 +635,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { facebookLogin, fetchManagedPages, exchangeFacebookToken, loadFacebookSdk } from '../services/facebookService';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 const currentStep    = ref(1);
@@ -606,6 +646,10 @@ const selectedTone   = ref('Friendly');
 const logoUrl        = ref('');
 const fbConnected    = ref(false);
 const fbConnecting   = ref(false);
+const fbUserToken    = ref('');
+const managedPages   = ref([]);   // ManagedPage[] from the Graph API
+const selectedPage   = ref(null); // the ManagedPage the user chose
+const showPagePicker = ref(false);
 const selectedTheme  = ref('');
 const selectedThemeLabel = ref('');
 const selectedLang   = ref('Filipino');
@@ -818,13 +862,65 @@ function handlePostImageUpload(e) {
   reader.readAsDataURL(file);
 }
 
-function simulateFbConnect() {
+// ─── Facebook connection ────────────────────────────────────────────────────
+// Preload the SDK so the login dialog opens instantly on click. Failures here
+// are non-fatal (e.g. missing App ID) — they surface when the user connects.
+onMounted(() => { loadFacebookSdk().catch(() => {}); });
+
+function formatFollowers(n) {
+  const count = Number(n) || 0;
+  if (count >= 1_000_000) return (count / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (count >= 1_000) return (count / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+  return String(count);
+}
+
+async function connectFacebook() {
   fbConnecting.value = true;
-  setTimeout(() => {
+  try {
+    const { userAccessToken } = await facebookLogin();
+    fbUserToken.value = userAccessToken;
+
+    const pages = await fetchManagedPages(userAccessToken);
+    if (pages.length === 0) {
+      showToast('No Facebook Pages found. You need to manage at least one Page.', 'yellow');
+      return;
+    }
+
+    managedPages.value = pages;
+    if (pages.length === 1) {
+      await selectPage(pages[0]);           // single Page → connect it directly
+    } else {
+      showPagePicker.value = true;          // multiple → let the user pick
+    }
+  } catch (err) {
+    showToast(err?.message || 'Could not connect to Facebook.', 'red');
+  } finally {
     fbConnecting.value = false;
-    fbConnected.value = true;
-    showToast('✓ Facebook Page connected!', 'green');
-  }, 2000);
+  }
+}
+
+async function selectPage(page) {
+  selectedPage.value = page;
+  showPagePicker.value = false;
+  fbConnected.value = true;
+
+  // Hand the token + page off to the server-side exchange (next issue). The
+  // callable may not be deployed yet, so a failure here must not block the UI.
+  try {
+    await exchangeFacebookToken({ userAccessToken: fbUserToken.value, pageId: page.id });
+  } catch (err) {
+    console.warn('Facebook token exchange unavailable:', err);
+  }
+
+  showToast(`✓ Connected ${page.name}!`, 'green');
+}
+
+function openPagePicker() {
+  if (managedPages.value.length) {
+    showPagePicker.value = true;
+  } else {
+    connectFacebook();
+  }
 }
 
 function startGeneration() {
@@ -1181,7 +1277,52 @@ function simulateTopup() {
   font-size: 13px; font-weight: 900;
 }
 .sx-switch-page { font-size: 12px; color: #94a3b8; text-align: center; }
-.sx-switch-page a { color: #2563eb; font-weight: 600; }
+.sx-switch-page a { color: #2563eb; font-weight: 600; cursor: pointer; }
+.sx-page-photo { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+/* Step 2: Page picker modal */
+.sx-picker-overlay {
+  position: fixed; inset: 0; z-index: 900;
+  background: rgba(15, 23, 42, .5);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.sx-picker {
+  background: #fff; border-radius: 16px; width: 100%; max-width: 440px;
+  max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, .3);
+}
+.sx-picker-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 20px 20px 16px; border-bottom: 1px solid #e2e8f0;
+}
+.sx-picker-title { font-size: 17px; font-weight: 800; color: #0f172a; }
+.sx-picker-sub   { font-size: 13px; color: #64748b; margin-top: 2px; }
+.sx-picker-close {
+  background: none; border: none; font-size: 16px; color: #94a3b8;
+  cursor: pointer; line-height: 1; padding: 4px; flex-shrink: 0;
+}
+.sx-picker-close:hover { color: #0f172a; }
+.sx-picker-list { display: flex; flex-direction: column; gap: 8px; padding: 16px 20px 20px; overflow-y: auto; }
+.sx-picker-item {
+  display: flex; align-items: center; gap: 12px;
+  border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 12px 14px;
+  background: #fff; cursor: pointer; font-family: inherit; text-align: left; transition: all .15s;
+}
+.sx-picker-item:hover  { border-color: #3b82f6; background: #eff6ff; }
+.sx-picker-item.active { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 2px #dbeafe; }
+.sx-picker-avatar {
+  width: 44px; height: 44px; background: #1d4ed8; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+.sx-picker-info { flex: 1; min-width: 0; }
+.sx-picker-name { font-size: 14px; font-weight: 800; color: #0f172a; }
+.sx-picker-meta { font-size: 12px; color: #94a3b8; }
+.sx-picker-check {
+  margin-left: auto; width: 24px; height: 24px; border-radius: 50%;
+  background: #e2e8f0; color: #fff; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900;
+}
+.sx-picker-check.on { background: #2563eb; }
 
 /* Step 3: Theme */
 .sx-theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -1473,6 +1614,7 @@ function simulateTopup() {
 .toast--green  { border-left: 4px solid #22c55e; }
 .toast--blue   { border-left: 4px solid #3b82f6; }
 .toast--yellow { border-left: 4px solid #facc15; }
+.toast--red    { border-left: 4px solid #ef4444; }
 
 /* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
