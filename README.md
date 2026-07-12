@@ -15,6 +15,13 @@ Before you start coding, read the setup and branching/PR workflow in [CONTRIBUTI
 
 ## Local dev
 
+> [!IMPORTANT]
+> **No emulators.** As of this milestone, the Firebase Emulator Suite is no
+> longer used anywhere in development. All development and testing — Auth,
+> Firestore, and Functions — runs against the **live Firebase project**. Deploy
+> Cloud Functions (see below) and exercise flows end-to-end on the real project;
+> do not start, wire up, or point config at any emulator.
+
 The dev server talks directly to the **real Firebase project** — Auth, Firestore, and Functions all point at production ([`src/firebase.ts`](./src/firebase.ts)). No emulators.
 
 ### Env config

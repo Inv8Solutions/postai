@@ -188,6 +188,27 @@ export async function connectFacebookPage(params: {
   return data
 }
 
+/** Result of disconnecting a Page: the id removed and whether Graph revocation succeeded. */
+export interface DisconnectResult {
+  pageId: string
+  revoked: boolean
+}
+
+/**
+ * Disconnects a connected Page via the callable `disconnectFacebookPage`. The
+ * function deletes the stored connection (including the server-only Page token)
+ * and best-effort revokes the app's Graph permissions, returning the user to the
+ * not-connected state. Idempotent — safe to call for an already-removed Page.
+ */
+export async function disconnectFacebookPage(pageId: string): Promise<DisconnectResult> {
+  const callable = httpsCallable<{ pageId: string }, DisconnectResult>(
+    functions,
+    'disconnectFacebookPage',
+  )
+  const { data } = await callable({ pageId })
+  return data
+}
+
 /**
  * Reads the Pages this user has already connected, most recent first. Returns
  * client-safe metadata only — the server-only Page access token is never read
