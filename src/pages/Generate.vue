@@ -636,7 +636,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { facebookLogin, fetchManagedPages, connectFacebookPage, loadFacebookSdk } from '../services/facebookService';
+import { facebookLogin, fetchManagedPages, connectFacebookPage, loadFacebookSdk, fetchConnectedPages } from '../services/facebookService';
+import { auth } from '../firebase';
+import { useUserStore } from '../stores/userStore';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 const currentStep    = ref(1);
@@ -863,9 +865,40 @@ function handlePostImageUpload(e) {
 }
 
 // ─── Facebook connection ────────────────────────────────────────────────────
+const userStore = useUserStore();
+
 // Preload the SDK so the login dialog opens instantly on click. Failures here
 // are non-fatal (e.g. missing App ID) — they surface when the user connects.
-onMounted(() => { loadFacebookSdk().catch(() => {}); });
+// Also read any connection already persisted in Firestore so a returning user
+// lands on Step 2 already connected and can skip straight to Continue.
+onMounted(() => {
+  loadFacebookSdk().catch(() => {});
+  loadExistingConnection();
+});
+
+// Pre-fill the connected state from the Page(s) this user connected in a prior
+// session. Reads client-safe metadata only (the Page token stays server-only).
+async function loadExistingConnection() {
+  const uid = userStore.getUserId || auth.currentUser?.uid;
+  if (!uid) return;
+  try {
+    const connections = await fetchConnectedPages(uid);
+    if (connections.length === 0) return;
+
+    managedPages.value = connections.map((c) => ({
+      id: c.pageId,
+      name: c.pageName,
+      category: '',
+      followers: 0,
+      pictureUrl: '',
+    }));
+    selectedPage.value = managedPages.value[0]; // most recently connected
+    fbConnected.value = true;
+  } catch (err) {
+    // Non-fatal: the user can still connect fresh from the button.
+    console.warn('Could not load existing Facebook connection:', err);
+  }
+}
 
 function formatFollowers(n) {
   const count = Number(n) || 0;
@@ -902,18 +935,20 @@ async function connectFacebook() {
 async function selectPage(page) {
   selectedPage.value = page;
   showPagePicker.value = false;
-  fbConnected.value = true;
 
   // Hand the token + page off to the server-side exchange, which stores the
-  // long-lived Page token (server-only). A failure here must not block the UI.
+  // long-lived Page token (server-only). Only mark the step connected once the
+  // connection is actually persisted — the Continue gate reflects real state,
+  // not client-side optimism, so it survives a reload.
   try {
     await connectFacebookPage({ shortLivedToken: fbUserToken.value, pageId: page.id });
+    fbConnected.value = true;
+    showToast(`✓ Connected ${page.name}!`, 'green');
   } catch (err) {
+    fbConnected.value = false;
     console.warn('Facebook Page connection failed server-side:', err);
-    showToast(err?.message || 'Connected, but saving the Page failed. Try again.', 'red');
+    showToast(err?.message || 'Could not save the Page connection. Please try again.', 'red');
   }
-
-  showToast(`✓ Connected ${page.name}!`, 'green');
 }
 
 function openPagePicker() {
