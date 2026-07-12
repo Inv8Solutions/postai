@@ -636,7 +636,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { facebookLogin, fetchManagedPages, exchangeFacebookToken, loadFacebookSdk } from '../services/facebookService';
+import { facebookLogin, fetchManagedPages, connectFacebookPage, loadFacebookSdk } from '../services/facebookService';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 const currentStep    = ref(1);
@@ -904,12 +904,13 @@ async function selectPage(page) {
   showPagePicker.value = false;
   fbConnected.value = true;
 
-  // Hand the token + page off to the server-side exchange (next issue). The
-  // callable may not be deployed yet, so a failure here must not block the UI.
+  // Hand the token + page off to the server-side exchange, which stores the
+  // long-lived Page token (server-only). A failure here must not block the UI.
   try {
-    await exchangeFacebookToken({ userAccessToken: fbUserToken.value, pageId: page.id });
+    await connectFacebookPage({ shortLivedToken: fbUserToken.value, pageId: page.id });
   } catch (err) {
-    console.warn('Facebook token exchange unavailable:', err);
+    console.warn('Facebook Page connection failed server-side:', err);
+    showToast(err?.message || 'Connected, but saving the Page failed. Try again.', 'red');
   }
 
   showToast(`✓ Connected ${page.name}!`, 'green');

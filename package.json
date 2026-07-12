@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "emulators": "firebase emulators:start",
     "deploy:functions": "firebase deploy --only functions"
   },
   "dependencies": {

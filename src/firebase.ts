@@ -2,7 +2,7 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
-import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
+import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -35,10 +35,9 @@ const app = initializeApp(firebaseConfig)
 export const db = getFirestore(app)
 export const auth = getAuth(app)
 
-// Functions setup, connect to local emulator during development
+// Callables target the deployed Cloud Functions in the real project (region
+// us-central1, the default). No emulator wiring — the dev server talks directly
+// to the live Firebase project.
 export const functions = getFunctions(app)
-if (import.meta.env.DEV) {
-  connectFunctionsEmulator(functions, '127.0.0.1', 5001)
-}
 
 export default app
