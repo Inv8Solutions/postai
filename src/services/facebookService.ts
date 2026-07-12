@@ -165,22 +165,23 @@ export function fetchManagedPages(userAccessToken: string): Promise<ManagedPage[
   })
 }
 
-/** What the server-side exchange returns once the connection is persisted. */
-export interface ExchangeResult {
+/** Non-sensitive page metadata returned by the server after connecting. */
+export interface ConnectResult {
   pageId: string
   pageName: string
+  scopes: string[]
 }
 
 /**
- * Hands the short-lived user token + chosen page id to the server-side exchange
- * (Cloud Function `exchangeFacebookToken`). The function swaps them for a
- * long-lived Page token and stores it server-only. Delivered by the next issue.
+ * Hands the short-lived user token + chosen page id to the callable
+ * `connectFacebookPage`. The function exchanges it for a long-lived Page token
+ * and persists the connection server-only; the token never reaches the client.
  */
-export async function exchangeFacebookToken(params: {
-  userAccessToken: string
+export async function connectFacebookPage(params: {
+  shortLivedToken: string
   pageId: string
-}): Promise<ExchangeResult> {
-  const callable = httpsCallable<typeof params, ExchangeResult>(functions, 'exchangeFacebookToken')
+}): Promise<ConnectResult> {
+  const callable = httpsCallable<typeof params, ConnectResult>(functions, 'connectFacebookPage')
   const { data } = await callable(params)
   return data
 }

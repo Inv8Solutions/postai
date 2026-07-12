@@ -10,10 +10,12 @@ requirements for going live.
 - **App type:** Business
 - **Product:** Facebook Login (for the OAuth grant that yields a User token,
   which we exchange server-side for long-lived **Page** access tokens).
-- **Token handling:** the OAuth *code → token* exchange runs in a Cloud Function.
-  Page access tokens are written to
-  `users/{uid}/facebookConnection/{pageId}.pageAccessToken` and are
-  **server-only** — never exposed to the client (see
+- **Token handling:** the client uses the Facebook JS SDK (`FB.login`) to obtain
+  a short-lived **user** token, then hands it — with the chosen page id — to the
+  callable Cloud Function **`connectFacebookPage`**. The function exchanges it
+  server-side (short-lived → long-lived user token → **Page** token) and writes
+  the Page token to `users/{uid}/facebookConnection/{pageId}.pageAccessToken`,
+  a **server-only** field never exposed to the client (see
   [`docs/data-model.md`](./data-model.md)). Publishing runs server-side.
 
 ## Credentials
@@ -67,6 +69,21 @@ export const facebookOAuthCallback = onRequest(
 ```
 
 To rotate: re-run `functions:secrets:set` and redeploy the functions.
+
+### App ID (Cloud Functions)
+
+The token exchange also needs the (public) **App ID** server-side, as the
+Functions param `META_APP_ID`. Put it in `functions/.env`; it is read at deploy
+time and baked into the function.
+
+```bash
+# functions/.env — App ID ONLY. Never put META_APP_SECRET here: it collides with
+# the Secret Manager secret of the same name and the deploy fails.
+META_APP_ID="<your app id>"   # same value as the client VITE_META_APP_ID
+```
+
+If unset, `connectFacebookPage` returns a `failed-precondition` error instead of
+attempting the exchange.
 
 ## OAuth redirect URIs
 
