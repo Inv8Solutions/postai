@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { applyBrandKit, PlaceholderTextProvider } from "./placeholderProvider.js";
+import {
+  applyBrandKit,
+  PlaceholderImageProvider,
+  PlaceholderTextProvider,
+} from "./placeholderProvider.js";
 import { contentBank } from "./contentBank.js";
 
 test("returns fully shaped caption content for the selected language/theme", async () => {
@@ -51,6 +55,38 @@ test("falls back to Filipino/general copy for unknown language & theme", async (
   const fallback = contentBank.Filipino.general[0];
   assert.equal(result.headline, fallback.h);
   assert.equal(result.caption, fallback.c);
+});
+
+test("image provider returns SVG bytes with matching metadata", async () => {
+  const provider = new PlaceholderImageProvider();
+  const result = await provider.generateImage({
+    theme: "promo",
+    headline: "50% Off Today",
+    subtext: "Ends Sunday",
+    businessName: "Nanay's Carinderia",
+  });
+
+  assert.ok(Buffer.isBuffer(result.data));
+  assert.ok(result.data.length > 0);
+  assert.equal(result.contentType, "image/svg+xml");
+  assert.equal(result.extension, "svg");
+
+  // The rendered SVG embeds the headline/subtext it was given (XML-escaped).
+  const svg = result.data.toString("utf8");
+  assert.ok(svg.startsWith("<svg"));
+  assert.ok(svg.includes("50% Off Today"));
+  assert.ok(svg.includes("Ends Sunday"));
+});
+
+test("image provider escapes XML-unsafe characters in text", async () => {
+  const provider = new PlaceholderImageProvider();
+  const result = await provider.generateImage({
+    theme: "promo",
+    headline: "Tom & Jerry's <Diner>",
+  });
+  const svg = result.data.toString("utf8");
+  assert.ok(svg.includes("Tom &amp; Jerry&apos;s &lt;Diner&gt;"));
+  assert.ok(!svg.includes("<Diner>"));
 });
 
 test("applyBrandKit fills brand-kit tokens in reviewed copy", () => {

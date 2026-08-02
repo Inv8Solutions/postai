@@ -100,21 +100,30 @@ function escapeXml(value: string): string {
 }
 
 /**
- * Renders a 1080×1080 SVG placeholder and returns it as a base64 `data:` URI —
- * a self-contained, valid image URL with no external dependency.
+ * Renders a 1080×1080 SVG placeholder and returns its raw bytes. The caller
+ * persists them (see functions/src/storage.ts); the provider itself has no
+ * network, storage, or vendor-key dependency.
  */
 export class PlaceholderImageProvider implements ImageProvider {
   readonly id = "placeholder";
 
   /**
    * @param {ImageInput} input image request.
-   * @return {Promise<ImageResult>} an SVG placeholder as a base64 data URI.
+   * @return {Promise<ImageResult>} the rendered SVG bytes + metadata.
    */
   async generateImage(input: ImageInput): Promise<ImageResult> {
     const [from, to] = THEME_GRADIENT[input.theme] ?? THEME_GRADIENT[DEFAULT_THEME];
-    const title = escapeXml(input.businessName?.trim() || "Your Business");
-    const subtitle = escapeXml(input.businessCategory?.trim() || "PostAI");
-    const themeLabel = escapeXml(input.theme.toUpperCase());
+    // Prefer the caller's headline/subtext; fall back to the brand kit so the
+    // art is never blank.
+    const title = escapeXml(
+      input.headline?.trim() || input.businessName?.trim() || "Your Business",
+    );
+    const subtitle = escapeXml(
+      input.subtext?.trim() || input.businessCategory?.trim() || "PostAI",
+    );
+    const footer = escapeXml(
+      `${input.businessName?.trim() || "PostAI"} · ${input.theme.toUpperCase()}`,
+    );
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
   <defs>
@@ -126,10 +135,13 @@ export class PlaceholderImageProvider implements ImageProvider {
   <rect width="1080" height="1080" fill="url(#bg)"/>
   <text x="540" y="470" fill="#ffffff" font-family="Arial, sans-serif" font-size="72" font-weight="bold" text-anchor="middle">${title}</text>
   <text x="540" y="560" fill="#ffffffcc" font-family="Arial, sans-serif" font-size="40" text-anchor="middle">${subtitle}</text>
-  <text x="540" y="960" fill="#ffffffaa" font-family="Arial, sans-serif" font-size="28" letter-spacing="4" text-anchor="middle">${themeLabel} · PLACEHOLDER IMAGE</text>
+  <text x="540" y="960" fill="#ffffffaa" font-family="Arial, sans-serif" font-size="28" letter-spacing="4" text-anchor="middle">${footer} · PLACEHOLDER IMAGE</text>
 </svg>`;
 
-    const base64 = Buffer.from(svg, "utf8").toString("base64");
-    return { imageUrl: `data:image/svg+xml;base64,${base64}` };
+    return {
+      data: Buffer.from(svg, "utf8"),
+      contentType: "image/svg+xml",
+      extension: "svg",
+    };
   }
 }

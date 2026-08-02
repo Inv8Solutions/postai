@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 import { getFunctions } from 'firebase/functions'
+import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -39,5 +40,9 @@ export const auth = getAuth(app)
 // us-central1, the default). No emulator wiring — the dev server talks directly
 // to the live Firebase project.
 export const functions = getFunctions(app)
+
+// Storage client, used for the direct browser → Storage upload of user-supplied
+// post images (see services/aiService.ts). The bucket comes from the config above.
+export const storage = getStorage(app)
 
 export default app

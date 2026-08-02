@@ -1,6 +1,7 @@
 import { onRequest, onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineString, defineSecret } from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
+import { randomUUID } from "node:crypto";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getImageProvider, getTextProvider } from "./ai/index.js";
@@ -11,6 +12,18 @@ import {
   resolveCaptionInput,
 } from "./ai/captionRequest.js";
 import type { BrandKit, RawCaptionRequest } from "./ai/captionRequest.js";
+import {
+  ImageValidationError,
+  resolveImageInput,
+} from "./ai/imageRequest.js";
+import type { RawImageRequest } from "./ai/imageRequest.js";
+import {
+  getSignedReadUrl,
+  isOwnedPostImagePath,
+  postImagePath,
+  uploadImage,
+  fileExists,
+} from "./storage.js";
 import { RateLimiter } from "./rateLimiter.js";
 
 initializeApp();
@@ -68,20 +81,36 @@ export const generatePost = onCall(async (request) => {
     const textProvider = getTextProvider();
     const imageProvider = getImageProvider();
 
-    const [text, image] = await Promise.all([
-      textProvider.generateCaption({
-        language,
-        theme,
-        businessName,
-        businessCategory,
-        context,
-      }),
-      imageProvider.generateImage({
-        theme,
-        businessName,
-        businessCategory,
-      }),
-    ]);
+    // Caption first, so the generated headline/subtext can be composed onto the
+    // image — keeping the art and the copy consistent.
+    const text = await textProvider.generateCaption({
+      language,
+      theme,
+      businessName,
+      businessCategory,
+      context,
+    });
+
+    const rendered = await imageProvider.generateImage({
+      theme,
+      headline: text.headline,
+      subtext: text.subtext,
+      businessName,
+      businessCategory,
+    });
+
+    // Persist the rendered bytes and hand back a signed URL (never a data URI).
+    const path = postImagePath(uid, {
+      kind: "generated",
+      id: randomUUID(),
+      extension: rendered.extension,
+    });
+    await uploadImage({
+      path,
+      data: rendered.data,
+      contentType: rendered.contentType,
+    });
+    const imageUrl = await getSignedReadUrl(path);
 
     logger.info("Post generated", {
       uid,
@@ -95,7 +124,8 @@ export const generatePost = onCall(async (request) => {
       caption: text.caption,
       headline: text.headline,
       subtext: text.subtext,
-      imageUrl: image.imageUrl,
+      imageUrl,
+      storagePath: path,
     };
   } catch (err) {
     logger.error("generatePost failed", {
@@ -195,6 +225,132 @@ export const generateCaption = onCall(async (request) => {
 function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
+
+// Basic per-user throttle for image generation/signing. In-memory, per-instance
+// (see RateLimiter) — a lightweight abuse guard, not a billing quota.
+const imageRateLimiter = new RateLimiter({ maxRequests: 15, windowMs: 60_000 });
+
+// Callable: render a branded image for a post through the configured image
+// provider, upload it to Firebase Storage, and return a signed download URL.
+// Business fields come from the request's `brandKit` (the client already holds
+// it). No post is persisted here.
+export const generateImage = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "You must be signed in to generate an image.",
+    );
+  }
+
+  if (!imageRateLimiter.tryConsume(uid)) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "You're generating images too quickly. Please wait a moment and try again.",
+    );
+  }
+
+  const raw = request.data as RawImageRequest;
+
+  let input;
+  try {
+    input = resolveImageInput(raw);
+  } catch (err) {
+    if (err instanceof ImageValidationError) {
+      throw new HttpsError("invalid-argument", err.message);
+    }
+    throw err;
+  }
+
+  try {
+    const imageProvider = getImageProvider();
+    const rendered = await imageProvider.generateImage(input);
+
+    const path = postImagePath(uid, {
+      kind: "generated",
+      id: randomUUID(),
+      extension: rendered.extension,
+    });
+    await uploadImage({
+      path,
+      data: rendered.data,
+      contentType: rendered.contentType,
+    });
+    const imageUrl = await getSignedReadUrl(path);
+
+    logger.info("Image generated", {
+      uid,
+      theme: input.theme,
+      imageProvider: imageProvider.id,
+    });
+
+    return { imageUrl, storagePath: path };
+  } catch (err) {
+    logger.error("generateImage failed", {
+      uid,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw new HttpsError(
+      "internal",
+      "We couldn't generate your image. Please try again.",
+    );
+  }
+});
+
+// Callable: mint a signed URL for a user-uploaded post image. Uploads take the
+// client-direct path — the browser writes the file straight to Storage with the
+// client SDK, then calls this to get a signed URL (which only the server can
+// mint). The caller may only sign objects under their own postImages/{uid}/…
+// prefix, so this can't be used to read someone else's files.
+export const getPostImageUrl = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "You must be signed in to access a post image.",
+    );
+  }
+
+  if (!imageRateLimiter.tryConsume(uid)) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "Too many requests. Please wait a moment and try again.",
+    );
+  }
+
+  const data = request.data as { storagePath?: string };
+  const storagePath = (data?.storagePath ?? "").trim();
+  if (!storagePath || !isOwnedPostImagePath(uid, storagePath)) {
+    throw new HttpsError(
+      "invalid-argument",
+      "A valid storage path for one of your uploads is required.",
+    );
+  }
+
+  try {
+    if (!(await fileExists(storagePath))) {
+      throw new HttpsError(
+        "not-found",
+        "That image doesn't exist. Please upload it again.",
+      );
+    }
+
+    const imageUrl = await getSignedReadUrl(storagePath);
+    logger.info("Post image signed", { uid, storagePath });
+    return { imageUrl, storagePath };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    logger.error("getPostImageUrl failed", {
+      uid,
+      storagePath,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw new HttpsError(
+      "internal",
+      "We couldn't load your image. Please try again.",
+    );
+  }
+});
 
 interface GraphError {
   message?: string;
