@@ -64,6 +64,10 @@ export interface TextProvider {
 export interface ImageInput {
   /** Content theme, used to pick mood/subject. */
   theme: Theme;
+  /** Headline to render prominently on the art. Optional. */
+  headline?: string;
+  /** Supporting subtext rendered under the headline. Optional. */
+  subtext?: string;
   /** Business name, rendered onto placeholder art / used in prompts. Optional. */
   businessName?: string;
   /** Business category. Optional. */
@@ -72,16 +76,27 @@ export interface ImageInput {
   prompt?: string;
 }
 
-/** The shaped image result an ImageProvider returns. */
+/**
+ * The shaped image an ImageProvider returns: the raw bytes plus enough metadata
+ * to persist them. The provider only *renders* the image — uploading it to
+ * storage and minting a URL is the caller's job (see functions/src/storage.ts),
+ * so the same storage/URL policy applies no matter which vendor produced the
+ * bytes.
+ */
 export interface ImageResult {
-  /** URL of the generated image. May be a hosted URL or a `data:` URI. */
-  imageUrl: string;
+  /** Raw image bytes to persist. */
+  data: Buffer;
+  /** MIME type of {@link data}, e.g. "image/svg+xml" or "image/png". */
+  contentType: string;
+  /** File extension (no dot) matching {@link contentType}, e.g. "svg", "png". */
+  extension: string;
 }
 
 /**
- * Generates post images. Implementations return a usable image URL — a real
- * vendor would upload to storage and return the hosted URL; the placeholder
- * returns a self-contained `data:` URI.
+ * Renders post images. Implementations return the raw image bytes; a real vendor
+ * would call its API and return the downloaded bytes, while the placeholder
+ * renders a self-contained SVG. Persistence (upload + URL) happens at the call
+ * site, not here.
  */
 export interface ImageProvider {
   /** Stable id used for provider selection/logging (e.g. "placeholder"). */
