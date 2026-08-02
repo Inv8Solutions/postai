@@ -19,25 +19,58 @@ import type {
 const DEFAULT_LANGUAGE: Language = "Filipino";
 const DEFAULT_THEME: Theme = "general";
 
+/**
+ * Personalizes reviewed copy with the caller's brand kit. `[BizName]` and
+ * `[Category]` tokens are replaced with the business name/category (mirroring the
+ * client's `[BizName]` convention in Generate.vue). Tokens whose brand-kit value
+ * is absent are left untouched rather than replaced with a blank.
+ * @param {string} text reviewed copy that may contain brand-kit tokens.
+ * @param {object} brand brand-kit fields (businessName, businessCategory).
+ * @return {string} the copy with any known tokens filled in.
+ */
+export function applyBrandKit(
+  text: string,
+  brand: { businessName?: string; businessCategory?: string },
+): string {
+  let out = text;
+  if (brand.businessName) out = out.replace(/\[BizName\]/g, brand.businessName);
+  if (brand.businessCategory) {
+    out = out.replace(/\[Category\]/g, brand.businessCategory);
+  }
+  return out;
+}
+
 /** Serves pre-written captions from the content bank. */
 export class PlaceholderTextProvider implements TextProvider {
   readonly id = "placeholder";
 
   /**
    * @param {CaptionInput} input caption request.
-   * @return {Promise<CaptionResult>} pre-written copy for the language/theme.
+   * @return {Promise<CaptionResult>} pre-written copy for the language/theme,
+   *   personalized with the brand kit and folding in any user context.
    */
   async generateCaption(input: CaptionInput): Promise<CaptionResult> {
     const byLang = contentBank[input.language] ?? contentBank[DEFAULT_LANGUAGE];
     const variants = byLang[input.theme] ?? byLang[DEFAULT_THEME];
     const base = variants[0];
 
+    // Personalize the reviewed copy with the brand kit (name/category). The
+    // canned bank is generic today, so this is a no-op until branded copy with
+    // tokens exists — but it keeps the brand kit flowing through to output.
+    const brand = {
+      businessName: input.businessName,
+      businessCategory: input.businessCategory,
+    };
+    const headline = applyBrandKit(base.h, brand);
+    const subtext = applyBrandKit(base.s, brand);
+    const body = applyBrandKit(base.c, brand);
+
     // Fold any user-supplied context into the caption so callers can see their
     // input flow through the pipeline. Headline/subtext stay as the reviewed copy.
     const detail = input.context?.trim();
-    const caption = detail ? `${base.c}\n\n${detail}` : base.c;
+    const caption = detail ? `${body}\n\n${detail}` : body;
 
-    return { caption, headline: base.h, subtext: base.s };
+    return { caption, headline, subtext };
   }
 }
 

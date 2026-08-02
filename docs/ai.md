@@ -54,6 +54,25 @@ AI_IMAGE_PROVIDER=placeholder
 An unrecognized id throws at generation time with the list of known ids, so a
 typo fails loudly rather than silently degrading.
 
+## Callables
+
+Two callables drive generation; both require an authenticated caller and pick
+their providers from the config above.
+
+- **`generatePost`** — caption **and** image in one call. Business fields
+  (`businessName`, `businessCategory`) come from the request. Validates
+  `language` + `theme`; does not persist a post or spend credits.
+- **`generateCaption`** — caption only, returning `{ caption, headline,
+  subtext }`. Takes `{ theme, language?, context? }` from the request and reads
+  the caller's **brand kit** (`businessName`, `businessCategory`, `brandTone`,
+  default `language`) from `users/{uid}` — the tone/category/name that drive the
+  copy come from the profile saved at sign-up, not the request. `language`
+  falls back to the brand kit's default, then Filipino. Input validation and a
+  basic per-user rate limit live in
+  [`ai/captionRequest.ts`](../functions/src/ai/captionRequest.ts) /
+  [`rateLimiter.ts`](../functions/src/rateLimiter.ts); both are covered by
+  `node --test` unit tests (`npm test` in `functions/`).
+
 ## The placeholder provider
 
 The default, and what makes the pipeline runnable with **no vendor keys**:

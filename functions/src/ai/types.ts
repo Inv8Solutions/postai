@@ -34,6 +34,8 @@ export interface CaptionInput {
   businessName?: string;
   /** Business category (e.g. "Resto-Bar"). Optional. */
   businessCategory?: string;
+  /** Brand voice from the brand kit (e.g. "Friendly", "Professional"). Optional. */
+  brandTone?: string;
   /** Free-form details the user wants included (e.g. "10% off until Sunday"). */
   context?: string;
 }
