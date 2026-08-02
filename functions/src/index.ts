@@ -4,7 +4,14 @@ import * as logger from "firebase-functions/logger";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getImageProvider, getTextProvider } from "./ai/index.js";
-import type { Language, Theme } from "./ai/index.js";
+import {
+  SUPPORTED_LANGUAGES,
+  SUPPORTED_THEMES,
+  CaptionValidationError,
+  resolveCaptionInput,
+} from "./ai/captionRequest.js";
+import type { BrandKit, RawCaptionRequest } from "./ai/captionRequest.js";
+import { RateLimiter } from "./rateLimiter.js";
 
 initializeApp();
 const db = getFirestore();
@@ -20,16 +27,6 @@ const GRAPH_BASE = `https://graph.facebook.com/${GRAPH_VERSION}`;
 export const healthcheck = onRequest((req, res) => {
   res.status(200).json({ status: "ok", timestamp: Date.now() });
 });
-
-const LANGUAGES: readonly Language[] = ["Filipino", "Taglish", "English"];
-const THEMES: readonly Theme[] = [
-  "promo",
-  "announcement",
-  "holiday",
-  "tips",
-  "general",
-  "product",
-];
 
 // Callable: generate a post's caption + image through the configured AI
 // providers (see functions/src/ai and docs/ai.md). Which providers run is a
@@ -54,12 +51,12 @@ export const generatePost = onCall(async (request) => {
   };
 
   // Validate the two enum inputs; free-text fields are passed through trimmed.
-  const language = LANGUAGES.find((l) => l === data?.language);
-  const theme = THEMES.find((t) => t === data?.theme);
+  const language = SUPPORTED_LANGUAGES.find((l) => l === data?.language);
+  const theme = SUPPORTED_THEMES.find((t) => t === data?.theme);
   if (!language || !theme) {
     throw new HttpsError(
       "invalid-argument",
-      `A valid language (${LANGUAGES.join(", ")}) and theme (${THEMES.join(", ")}) are required.`,
+      `A valid language (${SUPPORTED_LANGUAGES.join(", ")}) and theme (${SUPPORTED_THEMES.join(", ")}) are required.`,
     );
   }
 
@@ -111,6 +108,93 @@ export const generatePost = onCall(async (request) => {
     );
   }
 });
+
+// Basic per-user throttle for caption generation. In-memory and per-instance
+// (see RateLimiter) — a lightweight abuse guard, not a billing quota.
+const captionRateLimiter = new RateLimiter({ maxRequests: 15, windowMs: 60_000 });
+
+// Callable: generate just a caption (caption + headline + subtext) for the
+// signed-in user, driven by their brand kit and the chosen theme/language plus
+// optional context. Unlike generatePost, the tone/category/name come from the
+// brand kit persisted at sign-up (users/{uid}) rather than the request — this is
+// the first server code to read those fields back. No post is persisted here.
+export const generateCaption = onCall(async (request) => {
+  const uid = request.auth?.uid;
+  if (!uid) {
+    throw new HttpsError(
+      "unauthenticated",
+      "You must be signed in to generate a caption.",
+    );
+  }
+
+  if (!captionRateLimiter.tryConsume(uid)) {
+    throw new HttpsError(
+      "resource-exhausted",
+      "You're generating captions too quickly. Please wait a moment and try again.",
+    );
+  }
+
+  const raw = request.data as RawCaptionRequest;
+
+  try {
+    // Load the brand kit stored at sign-up. A missing/partial profile is fine —
+    // resolveCaptionInput fills sensible defaults (e.g. language) so a caption
+    // still generates.
+    const snap = await db.collection("users").doc(uid).get();
+    const profile = snap.data() ?? {};
+    const brandKit: BrandKit = {
+      businessName: asString(profile.businessName),
+      businessCategory: asString(profile.businessCategory),
+      brandTone: asString(profile.brandTone),
+      language: asString(profile.language),
+    };
+
+    let input;
+    try {
+      input = resolveCaptionInput(raw, brandKit);
+    } catch (err) {
+      if (err instanceof CaptionValidationError) {
+        throw new HttpsError("invalid-argument", err.message);
+      }
+      throw err;
+    }
+
+    const textProvider = getTextProvider();
+    const result = await textProvider.generateCaption(input);
+
+    logger.info("Caption generated", {
+      uid,
+      theme: input.theme,
+      language: input.language,
+      textProvider: textProvider.id,
+    });
+
+    return {
+      caption: result.caption,
+      headline: result.headline,
+      subtext: result.subtext,
+    };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    logger.error("generateCaption failed", {
+      uid,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw new HttpsError(
+      "internal",
+      "We couldn't generate your caption. Please try again.",
+    );
+  }
+});
+
+/**
+ * Narrows an unknown Firestore field to a trimmed string, or undefined.
+ * @param {unknown} value raw field value.
+ * @return {string | undefined} the string value, or undefined if not a string.
+ */
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
 
 interface GraphError {
   message?: string;
